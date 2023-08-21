@@ -1,0 +1,26 @@
+services:
+  selenium-chrome:
+    image: selenium/standalone-chrome:115.0
+    container_name: selenium-chrome-container
+    network_mode: host
+    shm_size: 2g
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+    environment:
+      - SE_NODE_SESSION_TIMEOUT=1800
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=TRUE
+      - SE_NODE_MAX_SESSIONS=4
+
+  app:
+    build: .
+    image: whatsapp-bot-message
+    container_name: whatsapp-bot-message-container
+    network_mode: host
+    depends_on:
+      - selenium-chrome
+    command:
+      bash -c "
+        cd src && \
+        python main.py
+      "
