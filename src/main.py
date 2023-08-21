@@ -1,7 +1,12 @@
 from pandas import read_excel
 
 from selenium import webdriver
+from selenium.webdriver import Remote
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -24,21 +29,38 @@ def define_webdriver():
     )
 
 
+def get_element(driver: Remote, xpath: str):
+    logger.debug(f'getting element - xpath: {xpath}')
+    return WebDriverWait(driver, 180).until(
+        EC.presence_of_element_located((By.XPATH, xpath))
+    )
+
+
 if __name__ == '__main__':
     driver = define_webdriver()
     driver.get('https://web.whatsapp.com/')
 
-    while True:
-        option = input('Do you already read QRCODE? [y/n] or (q)uit > ')
-        if option.lower().startswith(('s', 'y', 'c')):
-            break
-        if option.lower().startswith(('q')):
-            driver.quit()
-            logger.info('quitting...')
-            exit()
+    try:
+        element = WebDriverWait(driver, 60).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                '//div[@data-testid="qrcode"]')
+            )
+        )
+    except TimeoutException:
+        raise Exception('QRCode not found!')
+
+    logger.info('waiting 5 minutes until you scan QRCODE...')
+    try:
+        WebDriverWait(driver, 300).until(
+            EC.invisibility_of_element(element)
+        )
+    except TimeoutException:
+        raise Exception('You need to scan QRCODE!')
 
     numbers = read_excel('../resources/numbers.xlsx')
 
+    xpath_clipboard = '//textarea[@id="clipboard-element"]'
     xpath_search = '//div[@data-testid="chat-list-search"]'
     xpath_contact = '//div[@tabindex="-1" and @role="row"]'
     xpath_message = '//div[@data-testid="conversation-compose-box-input"]'
@@ -70,14 +92,12 @@ if __name__ == '__main__':
             textarea.innerHTML = '{data["number"]}'
             """
         )
-        element_clipboard = driver.find_element(
-            'xpath', '//textarea[@id="clipboard-element"]'
-        )
+        element_clipboard = get_element(driver, xpath_clipboard)
         element_clipboard.location_once_scrolled_into_view
         element_clipboard.send_keys(Keys.CONTROL + 'a')
         element_clipboard.send_keys(Keys.CONTROL + 'c')
 
-        element_search = driver.find_element('xpath', xpath_search)
+        element_search = get_element(driver, xpath_search)
         element_search.send_keys(Keys.CONTROL + 'v')
         element_search.send_keys(Keys.ENTER)
 
@@ -87,14 +107,12 @@ if __name__ == '__main__':
             textarea.innerHTML = '{message.format(name=data["name"])}'
             """
         )
-        element_clipboard = driver.find_element(
-            'xpath', '//textarea[@id="clipboard-element"]'
-        )
+        element_clipboard = get_element(driver, xpath_clipboard)
         element_clipboard.location_once_scrolled_into_view
         element_clipboard.send_keys(Keys.CONTROL + 'a')
         element_clipboard.send_keys(Keys.CONTROL + 'c')
 
-        element_message = driver.find_element('xpath', xpath_message)
+        element_message = get_element(driver, xpath_message)
         element_message.location_once_scrolled_into_view
         element_message.send_keys(Keys.CONTROL + 'v')
         element_message.send_keys(Keys.ENTER)
