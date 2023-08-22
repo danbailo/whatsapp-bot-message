@@ -1,7 +1,9 @@
+from time import sleep
+
 from pandas import read_excel
 
-from selenium import webdriver
 from selenium.webdriver import Remote
+from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
@@ -20,10 +22,10 @@ from logger import logger
 )
 def define_webdriver():
     logger.info('starting webdriver')
-    options = webdriver.ChromeOptions()
+    options = ChromeOptions()
     options.add_argument('--start-maximized')
     options.add_argument('--ignore-certificate-errors')
-    return webdriver.Remote(
+    return Remote(
         command_executor='http://localhost:4444',
         options=options
     )
@@ -34,6 +36,32 @@ def get_element(driver: Remote, xpath: str):
     return WebDriverWait(driver, 180).until(
         EC.presence_of_element_located((By.XPATH, xpath))
     )
+
+
+def wait_for_loader(driver: Remote):
+    element = None
+    try:
+        element = WebDriverWait(driver, 3).until(
+            EC.visibility_of_element_located(
+                (By.XPATH,
+                 '//div[@data-testid="wa-web-loading-screen"]')
+            )
+        )
+        logger.debug('loader is visible')
+    except TimeoutException:
+        logger.debug('visibilidade do loader não foi encontrado')
+        sleep(0.5)
+        return
+
+    try:
+        if element is not None:
+            WebDriverWait(driver, 300).until(
+                EC.invisibility_of_element(element)
+            )
+        logger.debug('loader is invisible')
+    except Exception:
+        pass
+    sleep(0.5)
 
 
 if __name__ == '__main__':
@@ -58,12 +86,15 @@ if __name__ == '__main__':
     except TimeoutException:
         raise Exception('You need to scan QRCODE!')
 
+    wait_for_loader(driver)
+
     numbers = read_excel('../resources/numbers.xlsx')
 
     xpath_clipboard = '//textarea[@id="clipboard-element"]'
     xpath_search = '//div[@data-testid="chat-list-search"]'
     xpath_contact = '//div[@tabindex="-1" and @role="row"]'
     xpath_message = '//div[@data-testid="conversation-compose-box-input"]'
+
     message = 'hello {name}!'
 
     driver.execute_script(
@@ -83,7 +114,6 @@ if __name__ == '__main__':
         app.insertBefore(div, app.firstChild);
         """
     )
-
     for it, row in enumerate(numbers.iterrows(), start=1):
         _, data = row
         driver.execute_script(
@@ -118,3 +148,6 @@ if __name__ == '__main__':
         element_message.send_keys(Keys.ENTER)
 
         logger.info(f'progress {it}/{len(numbers)}')
+
+    driver.quit()
+    logger.info('done!')
