@@ -33,7 +33,7 @@ def define_webdriver():
 
 def get_element(driver: Remote, xpath: str):
     logger.debug(f'getting element - xpath: {xpath}')
-    return WebDriverWait(driver, 180).until(
+    return WebDriverWait(driver, 10, poll_frequency=0.1).until(
         EC.presence_of_element_located((By.XPATH, xpath))
     )
 
@@ -69,13 +69,14 @@ if __name__ == '__main__':
     driver.get('https://web.whatsapp.com/')
 
     try:
-        element = WebDriverWait(driver, 60).until(
+        element = WebDriverWait(driver, 60, poll_frequency=0.1).until(
             EC.presence_of_element_located((
                 By.XPATH,
                 '//div[@data-testid="qrcode"]')
             )
         )
     except TimeoutException:
+        driver.quit()
         raise Exception('QRCode not found!')
 
     logger.info('waiting 5 minutes until you scan QRCODE...')
@@ -84,6 +85,7 @@ if __name__ == '__main__':
             EC.invisibility_of_element(element)
         )
     except TimeoutException:
+        driver.quit()
         raise Exception('You need to scan QRCODE!')
 
     wait_for_loader(driver)
