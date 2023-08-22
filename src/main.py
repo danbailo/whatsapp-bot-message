@@ -1,12 +1,14 @@
+import os
+
 from time import sleep
 
 from pandas import read_excel
 
-from selenium.webdriver import Remote
-from selenium.webdriver import ChromeOptions
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver import Remote, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -26,30 +28,38 @@ def define_webdriver():
     options.add_argument('--start-maximized')
     options.add_argument('--ignore-certificate-errors')
     return Remote(
-        command_executor='http://localhost:4444',
+        command_executor=os.environ.get(
+            'CHROME_REMOTE_URL',
+            'http://localhost:4444'
+        ),
         options=options
     )
 
 
 def get_element(driver: Remote, xpath: str):
     logger.debug(f'getting element - xpath: {xpath}')
-    return WebDriverWait(driver, 10, poll_frequency=0.1).until(
+    return WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, xpath))
     )
 
 
-def wait_for_loader(driver: Remote):
+def clear_element(element: WebElement):
+    element.send_keys(Keys.CONTROL + 'a')
+    element.send_keys(Keys.BACK_SPACE)
+
+
+def wait_for_progress_bar(driver: Remote):
     element = None
     try:
         element = WebDriverWait(driver, 3).until(
             EC.visibility_of_element_located(
                 (By.XPATH,
-                 '//div[@data-testid="wa-web-loading-screen"]')
+                 '//progress')
             )
         )
-        logger.debug('loader is visible')
+        logger.debug('progress bar is visible')
     except TimeoutException:
-        logger.debug('visibilidade do loader não foi encontrado')
+        logger.debug('progress bar not found')
         sleep(0.5)
         return
 
@@ -58,7 +68,7 @@ def wait_for_loader(driver: Remote):
             WebDriverWait(driver, 300).until(
                 EC.invisibility_of_element(element)
             )
-        logger.debug('loader is invisible')
+        logger.debug('progress bar is invisible')
     except Exception:
         pass
     sleep(0.5)
@@ -69,10 +79,10 @@ if __name__ == '__main__':
     driver.get('https://web.whatsapp.com/')
 
     try:
-        element = WebDriverWait(driver, 60, poll_frequency=0.1).until(
+        element = WebDriverWait(driver, 60).until(
             EC.presence_of_element_located((
                 By.XPATH,
-                '//div[@data-testid="qrcode"]')
+                '//canvas/..')
             )
         )
     except TimeoutException:
@@ -88,16 +98,31 @@ if __name__ == '__main__':
         driver.quit()
         raise Exception('You need to scan QRCODE!')
 
-    wait_for_loader(driver)
+    wait_for_progress_bar(driver)
 
     numbers = read_excel('../resources/numbers.xlsx')
+    message = 'oi alecrim'
 
     xpath_clipboard = '//textarea[@id="clipboard-element"]'
-    xpath_search = '//div[@data-testid="chat-list-search"]'
+    xpath_search = (
+        '//div[@id="side"]//div[contains(@class, "lexical-rich-text-input")]'
+        '/div[@role="textbox"]'
+    )
     xpath_contact = '//div[@tabindex="-1" and @role="row"]'
-    xpath_message = '//div[@data-testid="conversation-compose-box-input"]'
-
-    message = 'hello {name}!'
+    xpath_message = (
+        '//div[@id="main"]//div[contains(@class, "lexical-rich-text-input")]'
+        '/div[@role="textbox"]'
+    )
+    xpath_sent_message = (
+        '//div[@id="main"]//div[@role="row"][last()]'
+        '[//span[@data-icon="msg-dblcheck" or @data-icon="msg-check"]]'
+        f'//span[text() = "{message}"]'
+    )
+    xpath_menu = '//header//span//span[@data-icon="menu"]'
+    xpath_menu_disconnect = '//li[@data-animate-dropdown-item="true"][last()]'
+    xpath_confirm_disconnect = (
+        '//div[@data-animate-modal-popup="true"]//button[last()]'
+    )
 
     driver.execute_script(
         """
@@ -132,6 +157,7 @@ if __name__ == '__main__':
         element_search = get_element(driver, xpath_search)
         element_search.send_keys(Keys.CONTROL + 'v')
         element_search.send_keys(Keys.ENTER)
+        clear_element(element_search)
 
         driver.execute_script(
             f"""
@@ -149,7 +175,20 @@ if __name__ == '__main__':
         element_message.send_keys(Keys.CONTROL + 'v')
         element_message.send_keys(Keys.ENTER)
 
+        # TODO: handle not sent message
+        element_sent_message = get_element(driver, xpath_sent_message)
+
         logger.info(f'progress {it}/{len(numbers)}')
 
+    logger.info('disconnecting user...')
+    get_element(driver, xpath_menu).click()
+    get_element(driver, xpath_menu_disconnect).click()
+    get_element(driver, xpath_confirm_disconnect).click()
+    WebDriverWait(driver, 180).until(
+        EC.presence_of_element_located((
+           By.XPATH,
+           '//canvas/..')
+        )
+    )
     driver.quit()
     logger.info('done!')
