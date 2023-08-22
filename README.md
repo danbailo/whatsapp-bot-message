@@ -6,7 +6,7 @@ A simple application to send messages for contacts that was writed in
 
 ## Requirements
 
-* Docker & Docker compose
+* [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Running application
 
