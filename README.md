@@ -14,7 +14,7 @@ A simple application to send messages for contacts that was writed in
 docker compose down && docker compose up --build
 ```
 
-After run application, you need to access http://localhost:7900/?autoconnect=1&resize=scale&password=secret
+After run application, you need to access http://localhost:7900/?autoconnect=1&password=secret
 and scan the QRCode.
 
 You have 5 minutes to scan it, otherwise the application will failed.
