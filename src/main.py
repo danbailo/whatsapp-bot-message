@@ -101,7 +101,7 @@ if __name__ == '__main__':
     wait_for_progress_bar(driver)
 
     numbers = read_excel('../resources/numbers.xlsx')
-    message = 'oi alecrim'
+    message = 'Your message'
 
     xpath_clipboard = '//textarea[@id="clipboard-element"]'
     xpath_search = (
