@@ -1,6 +1,6 @@
 import typer
 
-from .worker.whatsapp_bot import WhatsAppBot
+from worker.whatsapp_bot import WhatsAppBot
 
 app = typer.Typer()
 
