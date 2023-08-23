@@ -16,7 +16,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-from ..common.logger import logger
+from common.logger import logger
 
 
 @retry(
