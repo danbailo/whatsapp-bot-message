@@ -188,13 +188,23 @@ class WhatsAppBot:
         logger.info('checking if message was sent...')
         try:
             self._get_element(
+                self.XPATH_SENT_MESSAGE.format(message=self.message),
+                timeout=5
+            )
+            logger.info('message was sent with successfully!')
+            return
+        except Exception:
+            logger.warning('message not sent yet')
+        try:
+            self._get_element(
                 self.XPATH_NOT_SENT_MESSAGE.format(message=self.message),
                 timeout=timeout
             )
         except Exception:
             logger.warning('not found message with timer')
         self._get_element(
-            self.XPATH_SENT_MESSAGE.format(message=self.message)
+            self.XPATH_SENT_MESSAGE.format(message=self.message),
+            timeout=5
         )
         logger.info('message was sent with successfully!')
 
@@ -225,7 +235,7 @@ class WhatsAppBot:
                 self.XPATH_MESSAGE, need_scroll_into_element=True
             )
             self._send_value(element_message)
-            self._check_if_message_was_sent(timeout=30)
+            self._check_if_message_was_sent(timeout=60)
             logger.info(f'progress {it}/{len(numbers)}')
 
         logger.info('disconnecting user...')
