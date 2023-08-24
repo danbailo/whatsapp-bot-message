@@ -195,6 +195,8 @@ class WhatsAppBot:
             return
         except Exception:
             logger.warning('message not sent yet')
+
+        logger.info('waiting to message be sent...')
         try:
             self._get_element(
                 self.XPATH_NOT_SENT_MESSAGE.format(message=self.message),
