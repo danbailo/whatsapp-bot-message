@@ -169,16 +169,27 @@ class WhatsAppBot:
             element.location_once_scrolled_into_view
         return element
 
+    def _copy_textarea_content_to_clipboard(self):
+        element_clipboard = self._get_element(
+            self.XPATH_CLIBOARD, need_scroll_into_element=True
+        )
+        element_clipboard.send_keys(Keys.CONTROL + 'a')
+        element_clipboard.send_keys(Keys.CONTROL + 'c')
+
+    def _send_value(self, element: WebElement):
+        element.send_keys(Keys.CONTROL + 'v')
+        element.send_keys(Keys.ENTER)
+
     def _clear_element(self, element: WebElement):
         element.send_keys(Keys.CONTROL + 'a')
         element.send_keys(Keys.BACK_SPACE)
 
-    def _check_if_message_was_sent(self):
+    def _check_if_message_was_sent(self, timeout: float):
         logger.info('checking if message was sent...')
         try:
             self._get_element(
                 self.XPATH_NOT_SENT_MESSAGE.format(message=self.message),
-                timeout=5
+                timeout=timeout
             )
         except Exception:
             logger.warning('not found message with timer')
@@ -201,40 +212,27 @@ class WhatsAppBot:
         for it, row in enumerate(numbers.iterrows(), start=1):
             _, data = row
             self._insert_value_in_textarea_element(data["number"])
-
-            element_clipboard = self._get_element(
-                self.XPATH_CLIBOARD, need_scroll_into_element=True
-            )
-            element_clipboard.send_keys(Keys.CONTROL + 'a')
-            element_clipboard.send_keys(Keys.CONTROL + 'c')
+            self._copy_textarea_content_to_clipboard()
 
             element_search = self._get_element(self.XPATH_SEARCH)
-            element_search.send_keys(Keys.CONTROL + 'v')
-            element_search.send_keys(Keys.ENTER)
+            self._send_value(element_search)
             self._clear_element(element_search)
 
             self._insert_value_in_textarea_element(self.message)
-
-            element_clipboard = self._get_element(
-                self.XPATH_CLIBOARD, need_scroll_into_element=True
-            )
-            element_clipboard.send_keys(Keys.CONTROL + 'a')
-            element_clipboard.send_keys(Keys.CONTROL + 'c')
+            self._copy_textarea_content_to_clipboard()
 
             element_message = self._get_element(
                 self.XPATH_MESSAGE, need_scroll_into_element=True
             )
-            element_message.send_keys(Keys.CONTROL + 'v')
-            element_message.send_keys(Keys.ENTER)
-
-            self._check_if_message_was_sent()
+            self._send_value(element_message)
+            self._check_if_message_was_sent(timeout=30)
             logger.info(f'progress {it}/{len(numbers)}')
 
         logger.info('disconnecting user...')
         self._get_element(self.XPATH_MENU).click()
         self._get_element(self.XPATH_MENU_DISCONNECT).click()
         self._get_element(self.XPATH_CONFIRM_DISCONNECT).click()
-
         # TODO: improve way to validate when user is disconnected
         self._get_qrcode()
+
         logger.info('done!')
