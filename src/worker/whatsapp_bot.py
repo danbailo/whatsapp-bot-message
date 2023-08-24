@@ -53,9 +53,13 @@ class WhatsAppBot:
         '//div[@id="main"]//div[contains(@class, "lexical-rich-text-input")]'
         '/div[@role="textbox"]'
     )
+    XPATH_NOT_SENT_MESSAGE: str = (
+        '//div[@id="main"]//div[@role="row"][last()]'
+        '[div//span[@data-icon="msg-time"]]//span[text() = "{message}"]'
+    )
     XPATH_SENT_MESSAGE: str = (
         '//div[@id="main"]//div[@role="row"][last()]'
-        '[//span[@data-icon="msg-dblcheck" or @data-icon="msg-check"]]'
+        '[div//span[@data-icon="msg-dblcheck" or @data-icon="msg-check"]]'
         '//span[text() = "{message}"]'
     )
     XPATH_MENU: str = '//header//span//span[@data-icon="menu"]'
@@ -154,10 +158,11 @@ class WhatsAppBot:
     def _get_element(
         self,
         xpath: str,
+        timeout: float = 10,
         need_scroll_into_element: bool = False
     ) -> WebElement:
         logger.debug(f'getting element - xpath: {xpath}')
-        element = WebDriverWait(self.driver, 10).until(
+        element = WebDriverWait(self.driver, timeout).until(
             EC.presence_of_element_located((By.XPATH, xpath))
         )
         if need_scroll_into_element is True:
@@ -167,6 +172,20 @@ class WhatsAppBot:
     def _clear_element(self, element: WebElement):
         element.send_keys(Keys.CONTROL + 'a')
         element.send_keys(Keys.BACK_SPACE)
+
+    def _check_if_message_was_sent(self):
+        logger.info('checking if message was sent...')
+        try:
+            self._get_element(
+                self.XPATH_NOT_SENT_MESSAGE.format(message=self.message),
+                timeout=5
+            )
+        except Exception:
+            logger.warning('not found message with timer')
+        self._get_element(
+            self.XPATH_SENT_MESSAGE.format(message=self.message)
+        )
+        logger.info('message was sent with successfully!')
 
     def execute(self):
         self.driver.get('https://web.whatsapp.com/')
@@ -208,10 +227,7 @@ class WhatsAppBot:
             element_message.send_keys(Keys.CONTROL + 'v')
             element_message.send_keys(Keys.ENTER)
 
-            # TODO: handle not sent message and retry
-            self._get_element(
-                self.XPATH_SENT_MESSAGE.format(message=self.message)
-            )
+            self._check_if_message_was_sent()
             logger.info(f'progress {it}/{len(numbers)}')
 
         logger.info('disconnecting user...')
