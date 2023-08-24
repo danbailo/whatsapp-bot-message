@@ -189,7 +189,7 @@ class WhatsAppBot:
         try:
             self._get_element(
                 self.XPATH_SENT_MESSAGE.format(message=self.message),
-                timeout=5
+                timeout=10
             )
             logger.info('message was sent with successfully!')
             return
