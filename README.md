@@ -16,10 +16,19 @@ obs: if you'll run directly with Python, it's recommended to use virtual envirom
 ## Running application w/ Docker - Linux Based
 
 ```bash
-docker compose down && docker compose up --build
+docker compose down --remove-orphans
+docker compose build
 ```
 
-Whenever you change the [numbers.xlsx](resources/numbers.xlsx), you will need to re-execute `docker compose down && docker compose up --build`
+Before run application, you need to set the message that you wanna send in [compose.env](compose.env).
+
+Then, just run
+
+```bash
+docker compose --env-file=compose.env run app
+```
+
+Whenever you change the [numbers.xlsx](resources/numbers.xlsx), you will need to re-execute `docker compose down --remove-orphans && docker compose build`
 
 ## Running w/ Python - Linux Based
 
@@ -34,8 +43,10 @@ docker run --name selenium-whatsapp -d -p 4444:4444 -p 7900:7900 --network host 
 ```bash
 pip install -r requirements.txt
 cd src
-python -m main
+python main.py execute --message 'your-message'
 ```
+
+## After run
 
 After run application, you need to access http://localhost:7900/?autoconnect=1&password=secret and scan the QRCode.
 
