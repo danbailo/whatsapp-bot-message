@@ -55,12 +55,11 @@ class WhatsAppBot:
     )
     XPATH_NOT_SENT_MESSAGE: str = (
         '//div[@id="main"]//div[@role="row"][last()]'
-        '[div//span[@data-icon="msg-time"]]//span[text() = "{message}"]'
+        '[div//span[@data-icon="msg-time"]]'
     )
     XPATH_SENT_MESSAGE: str = (
         '//div[@id="main"]//div[@role="row"][last()]'
         '[div//span[@data-icon="msg-dblcheck" or @data-icon="msg-check"]]'
-        '//span[text() = "{message}"]'
     )
     XPATH_MENU: str = '//header//span//span[@data-icon="menu"]'
     XPATH_MENU_DISCONNECT: str = (
@@ -187,10 +186,7 @@ class WhatsAppBot:
     def _check_if_message_was_sent(self, timeout: float):
         logger.info('checking if message was sent...')
         try:
-            self._get_element(
-                self.XPATH_SENT_MESSAGE.format(message=self.message),
-                timeout=10
-            )
+            self._get_element(self.XPATH_SENT_MESSAGE, timeout=10)
             logger.info('message was sent with successfully!')
             return
         except Exception:
@@ -198,16 +194,10 @@ class WhatsAppBot:
 
         logger.info('waiting to message be sent...')
         try:
-            self._get_element(
-                self.XPATH_NOT_SENT_MESSAGE.format(message=self.message),
-                timeout=timeout
-            )
+            self._get_element(self.XPATH_NOT_SENT_MESSAGE, timeout=timeout)
         except Exception:
             logger.warning('not found message with timer')
-        self._get_element(
-            self.XPATH_SENT_MESSAGE.format(message=self.message),
-            timeout=5
-        )
+        self._get_element(self.XPATH_SENT_MESSAGE, timeout=5)
         logger.info('message was sent with successfully!')
 
     def execute(self):
