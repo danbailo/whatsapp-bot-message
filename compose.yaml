@@ -17,10 +17,8 @@ services:
     image: whatsapp-bot-message
     container_name: whatsapp-bot-message-container
     network_mode: host
-    depends_on:
-      - selenium-chrome
     command:
       bash -c "
         cd src && \
-        python main.py
+        python main.py execute --message ${MESSAGE}
       "
